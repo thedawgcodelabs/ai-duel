@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>AI Duel – Tic Tac Toe</title>
+  <style>
+    :root{
+      --bg:#05070d;
+      --card:rgba(255,255,255,.06);
+      --bdr:rgba(255,255,255,.12);
+      --txt:rgba(255,255,255,.92);
+      --mut:rgba(255,255,255,.68);
+      --cyan:#41f0ff;
+      --vio:#b37bff;
+      --lime:#7dffb2;
+      --red:#ff6b6b;
+      --amber:#ffcc66;
+      --shadow: 0 18px 70px rgba(0,0,0,.62);
+      --r:18px;
+      --cell:104px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--txt);
+      background:
+        radial-gradient(1000px 700px at 15% 12%, rgba(65,240,255,.18), transparent 60%),
+        radial-gradient(1000px 700px at 85% 0%, rgba(179,123,255,.14), transparent 60%),
+        radial-gradient(900px 700px at 60% 92%, rgba(125,255,178,.10), transparent 60%),
+        linear-gradient(180deg, #05070d, #070b14);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      overflow:hidden;
+    }
+
+    .fx::before{
+      content:"";
+      position:fixed; inset:0;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(255,255,255,.04),
+          rgba(255,255,255,.04) 1px,
+          rgba(0,0,0,0) 3px,
+          rgba(0,0,0,0) 6px
+        );
+      pointer-events:none;
+      opacity:.18;
+      mix-blend-mode:overlay;
+      animation: scan 7s linear infinite;
+    }
+    .fx::after{
+      content:"";
+      position:fixed; inset:0;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='190' height='190'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='190' height='190' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
+      opacity:.07;
+      pointer-events:none;
+      mix-blend-mode:soft-light;
+    }
+    @keyframes scan{ 0%{transform:translateY(-10%)} 100%{transform:translateY(10%)} }
+
+    .wrap{
+      width:min(1080px, 100%);
+      display:grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap:18px;
+      position:relative;
+      z-index:2;
+    }
+    @media(max-width: 980px){
+      .wrap{grid-template-columns:1fr}
+      :root{ --cell: 92px; }
+    }
+
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
+      border:1px solid var(--bdr);
+      border-radius:var(--r);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      backdrop-filter: blur(10px);
+    }
+    header{
+      padding:16px 16px 12px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:14px;
+    }
+    h1{
+      margin:0;
+      font-size:16px;
+      letter-spacing:.6px;
+      text-transform:uppercase;
+      font-weight:750;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .badge{
+      font-family:var(--mono);
+      font-size:11px;
+      padding:5px 8px;
+      border-radius:999px;
+      border:1px solid rgba(65,240,255,.25);
+      background:rgba(65,240,255,.08);
+      color:rgba(65,240,255,.95);
+    }
+    .sub{
+      margin-top:6px;
+      color:var(--mut);
+      font-size:12px;
+      line-height:1.35;
+      max-width: 520px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(3, var(--cell));
+      gap:12px;
+      padding:18px;
+      justify-content:center;
+    }
+    .cell{
+      height:var(--cell);
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.14);
+      background:
+        radial-gradient(120px 120px at 30% 25%, rgba(65,240,255,.10), transparent 55%),
+        radial-gradient(140px 140px at 80% 80%, rgba(179,123,255,.10), transparent 55%),
+        rgba(0,0,0,.20);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:48px;
+      user-select:none;
+      transition: transform .08s ease, border-color .15s ease, box-shadow .15s ease;
+      position:relative;
+      overflow:hidden;
+    }
+    .cell::after{
+      content:"";
+      position:absolute; inset:-40%;
+      background:conic-gradient(from 180deg, transparent, rgba(65,240,255,.22), transparent);
+      opacity:0;
+      transition:opacity .2s ease;
+      transform:rotate(20deg);
+    }
+    .cell:hover{
+      transform:translateY(-1px);
+      border-color:rgba(65,240,255,.35);
+      box-shadow:0 18px 55px rgba(65,240,255,.08);
+    }
+    .cell:hover::after{opacity:.35}
+    .cell:active{transform:translateY(0) scale(.99)}
+    .cell:disabled{cursor:not-allowed; opacity:.65}
+    .x{ color:rgba(65,240,255,.95); text-shadow:0 12px 40px rgba(65,240,255,.22); font-weight:800; }
+    .o{ color:rgba(255,107,107,.92); text-shadow:0 12px 40px rgba(255,107,107,.18); font-weight:800; }
+
+    .panel{ padding:16px; display:flex; flex-direction:column; gap:14px; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
+
+    .pill{
+      flex: 1 1 auto;
+      min-width: 210px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(0,0,0,.18);
+      font-size:12px;
+      color:var(--mut);
+      font-family:var(--mono);
+    }
+    .pill b{ color:var(--txt); font-weight:800; letter-spacing:.3px; }
+    .dot{ width:8px;height:8px;border-radius:999px;background:rgba(255,255,255,.28); box-shadow:0 0 0 3px rgba(255,255,255,.08); }
+    .dot.ok{ background: var(--lime); box-shadow:0 0 0 3px rgba(125,255,178,.12); }
+    .dot.warn{ background: var(--amber); box-shadow:0 0 0 3px rgba(255,204,102,.12); }
+    .dot.bad{ background: var(--red); box-shadow:0 0 0 3px rgba(255,107,107,.12); }
+
+    .btn{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.22);
+      color:var(--txt);
+      padding:10px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      transition: transform .08s ease, border-color .15s ease, background .15s ease;
+      font-size:12px;
+      font-family:var(--mono);
+      letter-spacing:.2px;
+    }
+    .btn:hover{ border-color:rgba(65,240,255,.35); background:rgba(65,240,255,.10); }
+    .btn:active{ transform:scale(.99); }
+    .btn.primary{ border-color:rgba(65,240,255,.38); background:rgba(65,240,255,.14); }
+
+    select{
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.22);
+      color:var(--txt);
+      font-family:var(--mono);
+      font-size:12px;
+      outline:none;
+      min-width:240px;
+    }
+    label{ font-size:12px; color:var(--mut); font-family:var(--mono); }
+
+    .term{
+      border:1px solid rgba(255,255,255,.12);
+      background: linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,0,0,.18));
+      border-radius:16px;
+      overflow:hidden;
+    }
+    .termTop{
+      padding:10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      font-family:var(--mono);
+      font-size:12px;
+      color:var(--mut);
+    }
+    .termDots{ display:flex; gap:8px; align-items:center; }
+    .termDots span{ width:10px; height:10px; border-radius:999px; display:inline-block; opacity:.9; }
+    .termDots .r{background:rgba(255,107,107,.9)}
+    .termDots .y{background:rgba(255,204,102,.9)}
+    .termDots .g{background:rgba(125,255,178,.9)}
+
+    .log{
+      font-family:var(--mono);
+      font-size:12px;
+      color:rgba(255,255,255,.78);
+      padding:12px;
+      min-height:190px;
+      white-space:pre-wrap;
+      line-height:1.45;
+      max-height:340px;
+      overflow:auto;
+    }
+    .log .k{ color: rgba(65,240,255,.95); }
+    .log .w{ color: rgba(255,255,255,.92); }
+    .log .m{ color: rgba(255,255,255,.60); }
+    .log .g{ color: rgba(125,255,178,.92); }
+    .log .r{ color: rgba(255,107,107,.92); }
+
+    .statusLine{ padding:0 2px; font-family:var(--mono); font-size:12px; color:var(--mut); }
+  </style>
+</head>
+<body class="fx">
+  <div class="wrap">
+    <div class="card">
+      <header>
+        <div>
+          <h1>AI Duel <span class="badge">v0.2</span></h1>
+          <div class="sub">You are <b>X</b>. Opponent is <b>O</b>. Personality changes tone. Battle log shows “reason” without leaking infrastructure.</div>
+        </div>
+        <div class="pill" style="min-width:260px; justify-content:flex-start; gap:10px;">
+          <span class="dot" id="aiDot"></span>
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <div><b id="aiState">Checking…</b></div>
+            <div style="font-size:11px; color:var(--mut)">Model: <span id="aiModel">—</span></div>
+          </div>
+        </div>
+      </header>
+
+      <div class="grid" id="grid"></div>
+      <div style="padding:0 18px 18px;">
+        <div class="statusLine" id="statusLine">Status: —</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <header>
+        <div>
+          <h1>Control Room <span class="badge">console</span></h1>
+          <div class="sub">Neon terminal output. Restart rounds and clear logs anytime.</div>
+        </div>
+      </header>
+
+      <div class="panel">
+        <div class="row">
+          <label>
+            Personality
+            <select id="personality">
+              <option value="balanced" selected>balanced</option>
+              <option value="cold">cold</option>
+              <option value="chaos">chaos</option>
+            </select>
+          </label>
+          <button class="btn primary" id="newBtn">NEW ROUND</button>
+          <button class="btn" id="clearBtn">CLEAR LOG</button>
+        </div>
+
+        <div class="row">
+          <div class="pill"><span>Latency</span><b id="latency">—</b></div>
+          <div class="pill"><span>Session</span><b id="session">LOCALHOST</b></div>
+        </div>
+
+        <div class="term">
+          <div class="termTop">
+            <div class="termDots"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+            <div>battle-log://session</div>
+            <div id="clock">—</div>
+          </div>
+          <div class="log" id="log"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const gridEl = document.getElementById("grid");
+  const logEl = document.getElementById("log");
+  const statusLineEl = document.getElementById("statusLine");
+  const personalityEl = document.getElementById("personality");
+  const aiDot = document.getElementById("aiDot");
+  const aiState = document.getElementById("aiState");
+  const aiModel = document.getElementById("aiModel");
+  const latencyEl = document.getElementById("latency");
+  const clockEl = document.getElementById("clock");
+
+  const wins = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  let board = Array(9).fill(null);
+  let locked = false;
+
+  function nowClock(){
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2,"0");
+    const mm = String(d.getMinutes()).padStart(2,"0");
+    const ss = String(d.getSeconds()).padStart(2,"0");
+    clockEl.textContent = `${hh}:${mm}:${ss}`;
+  }
+  setInterval(nowClock, 500); nowClock();
+
+  function logLine(html){
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function clearLog(){ logEl.innerHTML = ""; }
+
+  function getOutcome(b){
+    for (const line of wins){
+      const [a,c,d] = line;
+      if (b[a] && b[a] === b[c] && b[a] === b[d]) return { done:true, winner:b[a] };
+    }
+    if (b.every(x => x !== null)) return { done:true, winner:null };
+    return { done:false, winner:null };
+  }
+
+  function render(){
+    gridEl.innerHTML = "";
+    const outcome = getOutcome(board);
+
+    board.forEach((v,i)=>{
+      const btn = document.createElement("button");
+      btn.className = "cell";
+      btn.disabled = locked || board[i] !== null || outcome.done;
+      btn.onclick = () => humanMove(i);
+
+      if (v === "X") btn.innerHTML = `<span class="x">X</span>`;
+      else if (v === "O") btn.innerHTML = `<span class="o">O</span>`;
+      else btn.textContent = "";
+
+      gridEl.appendChild(btn);
+    });
+
+    if (!outcome.done){
+      statusLineEl.textContent = locked ? "Status: AI thinking…" : "Status: Your turn (X)";
+    } else {
+      if (outcome.winner === "X") statusLineEl.textContent = "Status: You win. (X)";
+      else if (outcome.winner === "O") statusLineEl.textContent = "Status: AI wins. (O)";
+      else statusLineEl.textContent = "Status: Draw.";
+    }
+  }
+
+  async function fetchWithTimeout(url, options, timeoutMs){
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), timeoutMs);
+    try{ return await fetch(url, { ...options, signal: controller.signal }); }
+    finally{ clearTimeout(t); }
+  }
+
+  async function checkHealth(){
+    try{
+      const r = await fetchWithTimeout("http://localhost:3000/api/health", {}, 1500);
+      const d = await r.json();
+      aiModel.textContent = d.model || "—";
+      if (d.ok && d.hasKey){
+        aiDot.className = "dot ok";
+        aiState.textContent = "AI ONLINE";
+      } else if (d.ok && !d.hasKey){
+        aiDot.className = "dot warn";
+        aiState.textContent = "AI LOCAL";
+      } else {
+        aiDot.className = "dot bad";
+        aiState.textContent = "AI OFFLINE";
+      }
+    } catch(e){
+      aiDot.className = "dot bad";
+      aiState.textContent = "AI OFFLINE";
+      aiModel.textContent = "—";
+    }
+  }
+
+  async function humanMove(i){
+    if (locked || board[i] !== null) return;
+    const outcome = getOutcome(board);
+    if (outcome.done) return;
+
+    board[i] = "X";
+    logLine(`<span class="m">[player]</span> <span class="k">X</span> <span class="m">-></span> <span class="w">${i}</span>`);
+    render();
+
+    locked = true;
+    render();
+
+    const t0 = performance.now();
+    try{
+      const resp = await fetchWithTimeout("http://localhost:3000/api/move", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ board, player: "O", personality: personalityEl.value })
+      }, 4500);
+
+      const data = await resp.json().catch(() => ({}));
+      const ms = Math.round(performance.now() - t0);
+      latencyEl.textContent = ms + "ms";
+
+      if (!resp.ok){
+        logLine(`<span class="r">[ai]</span> <span class="m">HTTP ${resp.status}</span> <span class="w">${(data.error||"unknown")}</span>`);
+        return;
+      }
+
+      logLine(`<span class="m">[ai]</span> <span class="k">O</span> <span class="m">reason:</span> <span class="w">${(data.why || "…")}</span>`);
+
+      if (Number.isInteger(data.i) && data.i >= 0 && data.i <= 8 && board[data.i] === null){
+        board[data.i] = "O";
+        logLine(`<span class="m">[ai]</span> <span class="k">O</span> <span class="m">-></span> <span class="w">${data.i}</span>`);
+      } else {
+        logLine(`<span class="r">[ai]</span> <span class="w">invalid move (${data.i})</span>`);
+      }
+
+    } catch(e){
+      const ms = Math.round(performance.now() - t0);
+      latencyEl.textContent = ms + "ms";
+      logLine(`<span class="r">[ai]</span> <span class="w">${e.name === "AbortError" ? "timeout" : e.message}</span>`);
+    } finally {
+      locked = false;
+      render();
+    }
+  }
+
+  document.getElementById("newBtn").onclick = () => {
+    board = Array(9).fill(null);
+    locked = false;
+    logLine(`<span class="m">[system]</span> <span class="w">new round initialized</span>`);
+    render();
+  };
+
+  document.getElementById("clearBtn").onclick = () => {
+    clearLog();
+    logLine(`<span class="m">[system]</span> <span class="w">log cleared</span>`);
+  };
+
+  checkHealth();
+  setInterval(checkHealth, 3500);
+  clearLog();
+  logLine(`<span class="m">[system]</span> <span class="w">booting duel environment…</span>`);
+  render();
+</script>
+</body>
+</html>
