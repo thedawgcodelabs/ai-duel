@@ -320,7 +320,7 @@ app.post("/api/move", async (req, res) => {
     ].join("\n");
 
     // Timeout so request can't hang forever
-    const timeoutMs = 7000;
+    const timeoutMs = 12000;
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error("Claude timeout")), timeoutMs)
     );
