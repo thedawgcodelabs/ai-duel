@@ -309,7 +309,7 @@
 
         <div class="row">
           <div class="pill"><span>Latency</span><b id="latency">—</b></div>
-          <div class="pill"><span>Session</span><b id="session">LOCALHOST</b></div>
+          <div class="pill"><span>Session</span><b id="session">ONLINE</b></div>
         </div>
 
         <div class="term">
@@ -406,7 +406,7 @@
 
   async function checkHealth(){
     try{
-      const r = await fetchWithTimeout("http://localhost:3000/api/health", {}, 1500);
+      const r = await fetchWithTimeout("/api/health", {}, 1500);
       const d = await r.json();
       aiModel.textContent = d.model || "—";
       if (d.ok && d.hasKey){
@@ -440,7 +440,7 @@
 
     const t0 = performance.now();
     try{
-      const resp = await fetchWithTimeout("http://localhost:3000/api/move", {
+      const resp = await fetchWithTimeout("/api/move", {
         method:"POST",
         headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({ board, player: "O", personality: personalityEl.value })
